@@ -18,7 +18,12 @@ async def tierSet(ctx,tier):
         await ctx.send('le tier {} est associer au rôle(s): {}'.format(tier,' , '.join(C)))
     else:
         await ctx.send("usage de la commande: bot!tierSet (int)tier @role @role  ... ")
-        
+
+@bot.command()
+async def initConf(ctx):
+    if path.isdir("/" + guild.name):
+        if path.exist("/" + guild.name + "/server.config"):
+            await ctx.send("les config sont déja intialiser")
 
 
 @bot.event
