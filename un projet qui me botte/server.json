@@ -1,5 +1,7 @@
 {
-    "commands": {},
+    "commands": {
+        "tierSetRole": "1"
+    },
     "roles": {
         "role1": "1",
         "role2": "1",

@@ -18,20 +18,18 @@ def conf_op(guild_name: str,mod: str):
         json.dump(D,f)
         f.close()
     return open("./" + guild_name + "/server.json",mod)
-     
-
 
 @bot.command()
-async def tierSet(ctx,tier):
+async def tierSetRole(ctx,tier):
     C=[]
     try:
         int(tier)
     except:
-        await ctx.send("usage de la commande: bot!tierSet (int)tier @role @role  ... ")
+        await ctx.send("usage de la commande: bot!tierSetRole (int)tier @role @role  ... ")
         return
     
     if len(ctx.message.role_mentions)==0:
-        await ctx.send("usage de la commande: bot!tierSet (int)tier @role @role  ... \nle rôle doit pouvoir être mentioner")
+        await ctx.send("usage de la commande: bot!tierSetRole (int)tier @role @role  ... \nle rôle doit pouvoir être mentioner")
     else:
         with conf_op(ctx.guild.name,"r") as f:
             j_dict=json.load(f)
@@ -47,7 +45,28 @@ async def tierSet(ctx,tier):
 
         await ctx.send('le tier {} est associer au rôle(s): {}'.format(tier,' , '.join(C)))
         
-    
+@bot.command()
+async def  tierSetCommand(ctx,tier):
+    C=[]
+    try:
+        int(tier)
+    except:
+        await ctx.send("usage de la commande: bot!tierSetCommand (int)tier cmnd cmd la commande ne doit pas contenir le préfix du bot ... ")
+        return
+    else:
+        with conf_op(ctx.guild.name,"r") as f:
+            j_dict=json.load(f)
+            f.close()
+        
+        for cmd in bot.commands :
+            if cmd.name in ctx.message.content.replace("bot!" + ctx.invoked_with,"",1) :
+                C.append(cmd.name)
+                j_dict["commands"][cmd.name]=tier
+
+        with conf_op(ctx.guild.name,"w+") as f:
+            json.dump(j_dict,f,sort_keys=True, indent=4)
+
+        await ctx.send('le tier {} est associer aux command(s): {}'.format(tier,' , '.join(C)))
 
 
 @bot.event
