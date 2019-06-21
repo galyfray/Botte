@@ -19,7 +19,7 @@ def conf_op(guild_name: str,mod: str):
         f.close()
     return open("./" + guild_name + "/server.json",mod)
 
-@bot.command()
+@bot.command(aliases=["tierSR","tierSetR","tsr","tSR","tiersetrole"])
 async def tierSetRole(ctx,tier):
     C=[]
     try:
@@ -51,7 +51,7 @@ async def  tierSetCommand(ctx,tier):
     try:
         int(tier)
     except:
-        await ctx.send("usage de la commande: bot!tierSetCommand (int)tier cmnd cmd la commande ne doit pas contenir le préfix du bot ... ")
+        await ctx.send("usage de la commande: bot!tierSetCommand (int)tier cmnd cmd la commande ne doit pas contenir le préfix du bot les allias ne sont pas suporter")
         return
     else:
         with conf_op(ctx.guild.name,"r") as f:
