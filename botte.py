@@ -4,17 +4,20 @@ from discord.ext.commands import Bot
 import asyncio
 import os
 import json
+import math
 bot=commands.Bot(command_prefix="bot!")
 
 #Définition des fonctions:
 
-def I_conf(guildName: str):
-    if not(os.path.isdir("./" + guildName)):
-        os.mkdir("./" + guildName)
-    if not(os.path.exists("./" + guildName + "/server.json")):
-        with open("./" + guildName+ "/server.json","w") as f:
-            f.write("{ }")
-            f.close()
+def conf_op(guild_name: str,mod: str):
+    if not(os.path.isdir("./" + guild_name)):
+        os.mkdir("./" + guild_name)
+    if not(os.path.exists("./" + guild_name + "/server.json")):
+        f=open("./" + guild_name + "/server.json","w")
+        D={"roles":{},"commands":{}}
+        json.dump(D,f)
+        f.close()
+    return open("./" + guild_name + "/server.json",mod)
      
 
 
@@ -30,24 +33,17 @@ async def tierSet(ctx,tier):
     if len(ctx.message.role_mentions)==0:
         await ctx.send("usage de la commande: bot!tierSet (int)tier @role @role  ... \nle rôle doit pouvoir être mentioner")
     else:
-        for r in ctx.message.role_mentions:
-            C.append(r.mention)
-
-        I_conf(ctx.guild.name)
-
-        Rconfig= open("./" + ctx.guild.name + "/server.json","r")
-        Jconfig=json.load(Rconfig)
+        with conf_op(ctx.guild.name,"r") as f:
+            j_dict=json.load(f)
+            f.close()
         
-        Tname="Tier "+tier
-        if Tname in Jconfig :
-            Jconfig[Tname]=C
-        else:
-            if "Tier 1" in Jconfig:
-                print(Jconfig["Tier 1"])
-            Jconfig[Tname]=C
-            Rconfig.close()
-            Rconfig=open("./" + ctx.guild.name + "/server.json","w+")
-            json.dump(Jconfig,Rconfig,indent = 4, sort_keys=True)
+        for role in ctx.message.role_mentions :
+            name=role.name
+            C.append(name)
+            j_dict["roles"][name]=tier
+
+        with conf_op(ctx.guild.name,"w+") as f:
+            json.dump(j_dict,f,sort_keys=True, indent=4)
 
         await ctx.send('le tier {} est associer au rôle(s): {}'.format(tier,' , '.join(C)))
         
@@ -66,5 +62,5 @@ async def on_ready():
 
 
 
-bot.run("NTkwNDkxMDI3NjMxMTEyMjAy.XQnYRQ.0U-M5F__kWzklClaUd2wfkjoDJ4")
+bot.run("NTkwNDkxMDI3NjMxMTEyMjAy.XQ0Ccg.Y5no6DPgNboqWF7jQLvvxnQSlJA")
 
