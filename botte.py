@@ -11,6 +11,16 @@ import sys
 bot=commands.Bot(command_prefix="bot!")
 
 #Définition des fonctions:
+def get_token():
+    try:
+        file=open("token.txt","r")
+        token=file.read()
+        file.close()
+        return token
+    except:
+        print("une erreur est survenue le fichier token.txt n'as pas pus être ouvert")
+        return ""
+
 
 def conf_op(guild_name: str,mod: str):
     if not(os.path.isdir("./" + guild_name)):
@@ -148,4 +158,4 @@ async def on_message(message):
 async def on_ready():
     print("bot pret a botter des gens !")
 
-bot.run("NTkwNDkxMDI3NjMxMTEyMjAy.XQ0Ccg.Y5no6DPgNboqWF7jQLvvxnQSlJA")
+bot.run(get_token())
