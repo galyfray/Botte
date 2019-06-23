@@ -1,9 +1,13 @@
 {
     "commands": {
-        "tierSetRole": "1"
+        "tierSetRole": "2"
     },
+    "defaltRank": [
+        "role2",
+        "role1"
+    ],
     "roles": {
-        "role1": "1",
+        "role1": "12",
         "role2": "1",
         "role20": "2"
     }
