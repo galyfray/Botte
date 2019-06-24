@@ -1,14 +1,20 @@
 {
     "commands": {
-        "tierSetRole": "2"
+        "help": "1",
+        "hi\u00e9rarchie": "1",
+        "link": 0,
+        "setDefaultRank": "1",
+        "setDefaultTier": "1",
+        "setLink": "1",
+        "tierSetCommand": 1,
+        "tierSetRole": "1"
     },
     "defaltRank": [
-        "role2",
         "role1"
     ],
+    "link": "vive le lien  https://www.youtube.com/",
+    "maxOffset": 0,
     "roles": {
-        "role1": "12",
-        "role2": "1",
-        "role20": "2"
+        "role1": 1
     }
 }
