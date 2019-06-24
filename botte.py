@@ -162,8 +162,22 @@ async def setLink(ctx,*,link):
             usage="<offset as number>")
 async def hiérarchie(ctx,offset: int):
     conf_dict = conf_load(ctx.guild.name)
-    conf_dict["maxOffset"]=offset or 0
+    conf_dict["maxOffset"]= offset or 0
+    conf_write(ctx.guild.name,conf_dict)
     await ctx.send("Offset définit a {}".format(offset))
+
+@bot.command(aliases=["welcomeMess","wm","wM","wellcomeM"],
+            description="définit le message envoyer au nouveaux arrivant sur le serveur, un message vide signifie que rien ne seras envoyer",
+            brief="définit le message envoyer au nouveaux arrivant",
+            usage="<isMP as bool> <message as String>")
+async def welcomeMessage(ctx,isMP:bool,*,message:str):
+    conf_dict=conf_load(ctx.guild.name)
+    if isMP:
+        conf_dict["welcomeMessage"]["MP"]=message
+    else:
+        conf_dict["welcomeMessage"]["server"]=message
+    conf_write(ctx.guild.name,conf_dict)
+    await ctx.send("ce message seras envoyer a tout les nouveaux arrivants !")
 
 #Event du bot
 
@@ -187,7 +201,7 @@ async def on_command_error(ctx,error):
 @bot.event
 async def on_member_join(member):
     conf_dict=conf_load(member.guild.name)
-    if "defaltRank" in conf_dict:
+    if "defaltRank" in conf_dict.keys():
         for role in conf_dict["defaltRank"] :
             await member.add_roles(discord.utils.get(member.guild.roles,name=role))
     
@@ -206,27 +220,28 @@ async def checkTier(ctx):
 
 @bot.event
 async def on_message(message):
+    #try:
+    sstr(message.author.guild.name)
+    #except:
+    #    await message.author.send("les commande via mp ne sont pas supporter par le bot :/")
+    #    return
     await bot.process_commands(message)
     conf_dict=conf_load(message.guild.name)
+    
     if not(message.author.guild_permissions.administrator) and int(conf_dict["maxOffset"])!=0 and (len(message.mentions)>=0 or len(message.role_mentions)>=0):
         author_tier=get_max_member_tier(message.author)
         test=True
         if len(message.mentions)>=0:
-            for member in message.mention:
-                if author_tier < get_min_menber_tier(member):
+            for member in message.mentions:
+                if author_tier + int(conf_dict["maxOffset"]) < get_min_menber_tier(member):
                     test=False
-        if len(message.role_mention)>=0:
-            for role in message.role_mention:
-                if role.name in conf_dict["roles"].key():
-                    if author_tier<int(conf_dict["roles"][role.name]):
+        if len(message.role_mentions)>=0:
+            for role in message.role_mentions:
+                if role.name in conf_dict["roles"].keys():
+                    if author_tier+ int(conf_dict["maxOffset"]) <int(conf_dict["roles"][role.name]):
                         test=False
-    if not(test):
-        message.delete
-
-        
-        
-        
-
+        if not(test):
+            await message.delete()
 
 @bot.event
 async def on_ready():

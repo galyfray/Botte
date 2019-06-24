@@ -13,8 +13,10 @@
         "role1"
     ],
     "link": "vive le lien  https://www.youtube.com/",
-    "maxOffset": 0,
+    "maxOffset": 1,
     "roles": {
-        "role1": 1
+        "role1": 1,
+        "role2": 12,
+        "role20": 12
     }
 }
