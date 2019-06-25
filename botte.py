@@ -60,6 +60,15 @@ def get_min_menber_tier(member):
             role_tier=min((role_tier,int(conf_dict["roles"][role.name])))
     return role_tier
 
+#remplacement de la commande d'help
+
+bot.remove_command("help")
+
+@bot.command()
+async def help(ctx,*command:str):
+    embed=discord.Embed(colour=discord.Colour.blue(),author="Help command for bot",)
+
+    await ctx.send("WIP")
 
 #Créeation des commandes:
 
@@ -84,7 +93,7 @@ async def tierSetRole(ctx,tier:int):
         await ctx.send('le tier {} est associer au rôle(s): {}'.format(tier,' , '.join(C)))
         
 @bot.command(aliases=["tierSC","tierSetC","tsc","tSC","tiersetcommand"],
-            description="définit le tier des comamndes du bot",
+            description="définit le tier des comamndes du bot, ne suporte pas les aliases",
             brief="définit le tier des comamndes du bot",
             usage="<tier as number> <commands as string list>")
 async def tierSetCommand(ctx,tier: int,*,command:str):
@@ -100,7 +109,7 @@ async def tierSetCommand(ctx,tier: int,*,command:str):
 
     await ctx.send('le tier {} est associer aux command(s): {}'.format(tier,' , '.join(C)))
 
-@bot.command(aliases=["sdr","setDefaultR","defaulRank","defaultR"],
+@bot.command(aliases=["sdr","setDefaultR","defaulRank","defaultR","dr"],
             description="définit le role par défaut attribuer au utilisateur qui rejoingne le server",
             brief="définit le role par défaut",
             usage="<role as role.mention>")
@@ -220,11 +229,12 @@ async def checkTier(ctx):
 
 @bot.event
 async def on_message(message):
-    #try:
-    sstr(message.author.guild.name)
-    #except:
-    #    await message.author.send("les commande via mp ne sont pas supporter par le bot :/")
-    #    return
+    try:
+        str(message.author.guild.name)
+    except AttributeError:
+        if not(message.author.id==bot.user.id):
+            await message.channel.send("les commande via mp ne sont pas supporter par le bot :/")
+        return
     await bot.process_commands(message)
     conf_dict=conf_load(message.guild.name)
     
