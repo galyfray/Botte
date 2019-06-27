@@ -52,7 +52,7 @@ def get_max_member_tier(member:discord.Member):
             role_tier=max((role_tier,int(conf_dict["roles"][role.name])))
     return role_tier
 
-def get_min_menber_tier(member):
+def get_min_member_tier(member):
     conf_dict=conf_load(member.guild.name)
     role_tier=math.inf
     for role in member.roles :
@@ -64,11 +64,56 @@ def get_min_menber_tier(member):
 
 bot.remove_command("help")
 
-@bot.command()
-async def help(ctx,*command:str):
-    embed=discord.Embed(colour=discord.Colour.blue(),author="Help command for bot",)
+@bot.command(description="commande d'aide pour Botte",
+            brief="commande d'aide pour Botte",
+            usage="<command as String>")
+async def help(ctx,command: str = ""):
+    conf_dict=conf_load(ctx.guild.name)
+    M=get_max_member_tier(ctx.message.author)
+    if len(command)==0:
+        embed_dict={}
+        for cmd in bot.commands:
+            if cmd.name in conf_dict["commands"].keys():
+                if int(conf_dict["commands"][cmd.name])<=M or ctx.message.author.guild_permissions.administrator:
+                    tier="Tier " + str(conf_dict["commands"][cmd.name])
+                    if not(tier in embed_dict):
+                        embed_dict[tier]={}
+                    embed_dict[tier][cmd.name]=cmd.brief
+            elif ctx.message.author.guild_permissions.administrator:
+                tier="ADMIN"
+                if not(tier in embed_dict):
+                    embed_dict[tier]={}
+                embed_dict[tier][cmd.name]=cmd.brief
+        embed=discord.Embed(colour=discord.Colour.blue(),title="Help command for botte")
+        for key in embed_dict.keys():
+            for kei in embed_dict[key].keys():
+                embed.add_field(name=kei,value=str(embed_dict[key][kei]) + " |" + key ,inline=False)
+        await ctx.message.author.send(embed=embed)
+        await ctx.send("l'aide t'as été envoyer via MP :thumbsup:")
+    else:
+        test = False
+        tier=""
+        if command in conf_dict["commands"].keys():
+            if int(conf_dict["commands"][command])<=M or ctx.message.author.guild_permissions.administrator:
+                test=True
+                tier="Tier " + str(conf_dict["commands"][command])
+            else:
+                await ctx.send("commande inconnue :/ 1 {}".format(test))
+        elif bot.get_command(command) in bot.commands and ctx.message.author.guild_permissions.administrator :
+            test = True
+            tier="ADMIN"
+        else:
+            await ctx.send("commande inconnue :/ 2 {}".format(command))
+        if test :
+            embed=discord.Embed(colour=discord.Colour.blue(),title="Help for the {} command".format(command))
+            cmd=bot.get_command(command)
+            embed.add_field(name="Description",value=cmd.description,inline=False)
+            embed.add_field(name="alias :",value="{}".format(" ,".join(cmd.aliases)),inline=False)
+            embed.add_field(name="Utilisation",value=command + " " + cmd.usage)
 
-    await ctx.send("WIP")
+            embed.add_field(name="Tier",value=tier,inline=False)
+            await ctx.send(embed=embed)
+
 
 #Créeation des commandes:
 
@@ -188,6 +233,13 @@ async def welcomeMessage(ctx,isMP:bool,*,message:str):
     conf_write(ctx.guild.name,conf_dict)
     await ctx.send("ce message seras envoyer a tout les nouveaux arrivants !")
 
+@bot.command()
+async def sendNews(ctx,news_tier:int,*,msg:str):
+    conf_dict=conf_load(ctx.guild.name)
+
+@bot.command()
+
+
 #Event du bot
 
 @bot.event
@@ -204,6 +256,8 @@ async def on_command_error(ctx,error):
     elif isinstance(error,commands.BadArgument):
         await ctx.send("argument invalide taper bot!help {} pour voir le type des argument".format(ctx.command))
         return
+    elif isinstance(error,commands.MissingRequiredArgument):
+        await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
     print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
     traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
@@ -217,7 +271,10 @@ async def on_member_join(member):
 @bot.check
 async def checkTier(ctx):
     conf_dict=conf_load(ctx.guild.name)
+    exception=("help")
     if(ctx.message.author.guild_permissions.administrator):
+        return True
+    elif ctx.command.name in exception:
         return True
     elif ctx.command.name in conf_dict["commands"].keys():
         if get_max_member_tier(ctx.message.author)>=int(conf_dict["commands"][ctx.command.name]):
@@ -243,7 +300,7 @@ async def on_message(message):
         test=True
         if len(message.mentions)>=0:
             for member in message.mentions:
-                if author_tier + int(conf_dict["maxOffset"]) < get_min_menber_tier(member):
+                if author_tier + int(conf_dict["maxOffset"]) < get_min_member_tier(member):
                     test=False
         if len(message.role_mentions)>=0:
             for role in message.role_mentions:

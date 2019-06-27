@@ -6,8 +6,7 @@
         "setDefaultRank": "1",
         "setDefaultTier": "1",
         "setLink": "1",
-        "tierSetCommand": 1,
-        "tierSetRole": "1"
+        "tierSetCommand": 1
     },
     "defaltRank": [
         "role1"
@@ -15,7 +14,7 @@
     "link": "vive le lien  https://www.youtube.com/",
     "maxOffset": 1,
     "roles": {
-        "role1": 1,
+        "role1": 0,
         "role2": 12,
         "role20": 12
     }
