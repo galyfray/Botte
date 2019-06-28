@@ -1,7 +1,7 @@
 {
     "commands": {
         "help": "1",
-        "hi\u00e9rarchie": "1",
+        "hierarchie": "1",
         "link": 0,
         "setDefaultRank": "1",
         "setDefaultTier": "1",
@@ -13,9 +13,16 @@
     ],
     "link": "vive le lien  https://www.youtube.com/",
     "maxOffset": 1,
+    "newsOffset": {
+        "galyfray": -Infinity
+    },
     "roles": {
-        "role1": 0,
+        "role1": 2,
         "role2": 12,
         "role20": 12
+    },
+    "welcomeMessage": {
+        "MP": "",
+        "server": ""
     }
 }

@@ -28,7 +28,7 @@ def conf_op(guild_name: str,mod: str):
         os.mkdir("./" + guild_name)
     if not(os.path.exists("./" + guild_name + "/server.json")):
         f=open("./" + guild_name + "/server.json","w")
-        D={"roles":{},"commands":{},"maxOffset":0}
+        D={"roles":{},"commands":{},"maxOffset":0,"newsOffset":{},"welcomeMessage":{"MP":"","server":""}}
         json.dump(D,f)
         f.close()
     return open("./" + guild_name + "/server.json",mod)
@@ -208,13 +208,13 @@ async def setLink(ctx,*,link):
     conf_write(ctx.guild.name,conf_dict)
     await ctx.send("lien sauvegarder :)")
 
-@bot.command(aliases=["vtf","hset","hiérach","h"],
+@bot.command(aliases=["vtf","hset","hierach","h"],
             description="définit l'écart max de tier entre une personne mentionnant et le mentioner" + \
             "\nexpl:si définit a 1 alors si tier 1 mentione tier2 ok si tier 1 mentionne tier 3 pasok" + \
             "\nvaleur négative ou 0 pour désactiver la fonction",
             brief="définit l'écart max de mentionnement autoriser",
             usage="<offset as number>")
-async def hiérarchie(ctx,offset: int):
+async def hierarchie(ctx,offset: int):
     conf_dict = conf_load(ctx.guild.name)
     conf_dict["maxOffset"]= offset or 0
     conf_write(ctx.guild.name,conf_dict)
@@ -233,11 +233,52 @@ async def welcomeMessage(ctx,isMP:bool,*,message:str):
     conf_write(ctx.guild.name,conf_dict)
     await ctx.send("ce message seras envoyer a tout les nouveaux arrivants !")
 
-@bot.command()
+@bot.command(aliases=["send"],
+            description="envoie une News a tout les joueurs dont le tier associer est supérieure ou égale au tier de la news utilisé unsubNews pour configurer les news que vous souhaiter recevoir",
+            brief="envoie une news au joueur",
+            usage="<newsTier as int> <News as string>")
 async def sendNews(ctx,news_tier:int,*,msg:str):
     conf_dict=conf_load(ctx.guild.name)
+    embed=discord.Embed(colour=discord.Colour.blue(),title="News en provenance de : {} ".format(ctx.guild.name))
+    title="A destination des roles :"
+    for role in conf_dict["roles"].keys():
+        if int(conf_dict["roles"][role])>= news_tier:
+            title=title + " , " + role 
+    
+    embed.add_field(name=title,value=msg,inline=False)
+    for member in ctx.guild.members :
+        T=get_max_member_tier(member)
+        if T >= news_tier :
+            if member.name in conf_dict["newsOffset"].keys():
+                if float(conf_dict["newsOffset"][member.name])<news_tier:
+                    await member.send(embed=embed)
+            else:
+                await member.send(embed=embed)
+    await ctx.send("la news a été envoyer ! ;)")
 
-@bot.command()
+
+@bot.command(aliases=["sub","unsub","unsubNews","toggleNews"],
+            description="permet au choix de toggle la totalité des news si newsTier est omis ou de bloquer les news inférieure ou équale au tier spécifier",
+            brief="gère la souscription au news du serveur",
+            usage="<optional: newsTier as int>")
+async def subNews(ctx,news_tier:int = math.inf):
+    conf_dict=conf_load(ctx.guild.name)
+    name=ctx.message.author.name
+    if news_tier==math.inf :
+        if not(name in conf_dict["newsOffset"].keys()):
+            conf_dict["newsOffset"][name]=news_tier
+            await ctx.send("vous ne receverez plus de news en provenace de ce serveur")
+        elif abs(conf_dict["newsOffset"][name])==math.inf:
+            conf_dict["newsOffset"][name]=(-1)*conf_dict["newsOffset"][name]
+            await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(conf_dict["newsOffset"][name]))
+        else:
+            conf_dict["newsOffset"][name]=news_tier
+            await ctx.send("vous ne receverez plus de news en provenace de ce serveur")
+    else:
+        conf_dict["newsOffset"][name]=news_tier
+        await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(news_tier))
+    conf_write(ctx.guild.name,conf_dict)
+    
 
 
 #Event du bot
@@ -267,6 +308,10 @@ async def on_member_join(member):
     if "defaltRank" in conf_dict.keys():
         for role in conf_dict["defaltRank"] :
             await member.add_roles(discord.utils.get(member.guild.roles,name=role))
+    if len(conf_dict["welcomMessage"]["MP"]) >0:
+        await member.send(conf_dict["welcomMessage"]["MP"])
+    if len(conf_dict["welcomMessage"]["server"])>0:
+        await member.guild.text_channels[0].send(conf_dict["welcomMessage"]["server"])
     
 @bot.check
 async def checkTier(ctx):
