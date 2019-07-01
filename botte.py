@@ -361,7 +361,7 @@ async def on_message(message):
     if message.content.startwith("bot!"):
         try:
             fichier=open("./{}/commands.log".format(message.author.guild.name,),"a")
-        except
+        except:
             fichier=open("./{}/commands.log".format(message.author.guild.name,),"w")
         await bot.process_commands(message)
     conf_dict=conf_load(message.guild.name)
