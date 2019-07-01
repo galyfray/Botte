@@ -68,12 +68,18 @@ bot.remove_command("help")
             brief="commande d'aide pour Botte",
             usage="<command as String>")
 async def help(ctx,command: str = ""):
+    exception=("help","subNews")
     conf_dict=conf_load(ctx.guild.name)
     M=get_max_member_tier(ctx.message.author)
     if len(command)==0:
         embed_dict={}
         for cmd in bot.commands:
-            if cmd.name in conf_dict["commands"].keys():
+            if cmd.name in exception :
+                tier="ALL"
+                if not(tier in embed_dict):
+                    embed_dict[tier]={}
+                embed_dict[tier][cmd.name]=cmd.brief
+            elif cmd.name in conf_dict["commands"].keys():
                 if int(conf_dict["commands"][cmd.name])<=M or ctx.message.author.guild_permissions.administrator:
                     tier="Tier " + str(conf_dict["commands"][cmd.name])
                     if not(tier in embed_dict):
@@ -88,8 +94,11 @@ async def help(ctx,command: str = ""):
         for key in embed_dict.keys():
             for kei in embed_dict[key].keys():
                 embed.add_field(name=kei,value=str(embed_dict[key][kei]) + " |" + key ,inline=False)
-        await ctx.message.author.send(embed=embed)
-        await ctx.send("l'aide t'as été envoyer via MP :thumbsup:")
+        try:
+            await ctx.message.author.send(embed=embed)
+            await ctx.send("l'aide t'as été envoyer via MP :thumbsup:")
+        except discord.errors.Forbidden :
+            await ctx.send("ah bah non je peut pas t'envoyer l'help en mp débrouille toi tout seul !")
     else:
         test = False
         tier=""
@@ -251,9 +260,16 @@ async def sendNews(ctx,news_tier:int,*,msg:str):
         if T >= news_tier :
             if member.name in conf_dict["newsOffset"].keys():
                 if float(conf_dict["newsOffset"][member.name])<news_tier:
-                    await member.send(embed=embed)
+                    try:
+                        await member.send(embed=embed)
+                    except discord.errors.Forbidden :
+                        pass
+
             else:
-                await member.send(embed=embed)
+                try:
+                    await member.send(embed=embed)
+                except discord.errors.Forbidden :
+                    pass
     await ctx.send("la news a été envoyer ! ;)")
 
 
@@ -299,8 +315,13 @@ async def on_command_error(ctx,error):
         return
     elif isinstance(error,commands.MissingRequiredArgument):
         await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
-    print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-    traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+    
+    try :
+        fichier=open("./Error.log","a")
+    except:
+        fichier=open("./Error.log","w")
+    print('Ignoring exception in command {}:'.format(ctx.command), file=fichier)
+    traceback.print_exception(type(error), error, error.__traceback__, file=fichier)
 
 @bot.event
 async def on_member_join(member):
@@ -316,7 +337,7 @@ async def on_member_join(member):
 @bot.check
 async def checkTier(ctx):
     conf_dict=conf_load(ctx.guild.name)
-    exception=("help")
+    exception=("help","subNews")
     if(ctx.message.author.guild_permissions.administrator):
         return True
     elif ctx.command.name in exception:
@@ -337,7 +358,12 @@ async def on_message(message):
         if not(message.author.id==bot.user.id):
             await message.channel.send("les commande via mp ne sont pas supporter par le bot :/")
         return
-    await bot.process_commands(message)
+    if message.content.startwith("bot!"):
+        try:
+            fichier=open("./{}/commands.log".format(message.author.guild.name,),"a")
+        except
+            fichier=open("./{}/commands.log".format(message.author.guild.name,),"w")
+        await bot.process_commands(message)
     conf_dict=conf_load(message.guild.name)
     
     if not(message.author.guild_permissions.administrator) and int(conf_dict["maxOffset"])!=0 and (len(message.mentions)>=0 or len(message.role_mentions)>=0):
