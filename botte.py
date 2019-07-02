@@ -295,7 +295,13 @@ async def subNews(ctx,news_tier:int = math.inf):
         await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(news_tier))
     conf_write(ctx.guild.name,conf_dict)
     
-
+@bot.command((aliases=["hello"],
+            description="Commande inutile, passez votre chemin",
+            brief="Hey, how are you",
+            usage="<optional: repetitions as int>")
+async def hey(ctx, rep;int=1):
+    for i  in range(rep):
+        await ctx.send(f"Salut {ctx.message.author.name} !"
 
 #Event du bot
 
