@@ -358,7 +358,7 @@ async def on_message(message):
         if not(message.author.id==bot.user.id):
             await message.channel.send("les commande via mp ne sont pas supporter par le bot :/")
         return
-    if message.content.startwith("bot!"):
+    if message.content.startswith("bot!"):
         try:
             fichier=open("./{}/commands.log".format(message.author.guild.name,),"a")
         except:
