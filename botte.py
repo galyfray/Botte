@@ -10,6 +10,8 @@ import sys
 
 bot=commands.Bot(command_prefix="bot!")
 
+command 2>"./Errors.log"
+
 #Définition des fonctions:
 def get_token():
     try:
