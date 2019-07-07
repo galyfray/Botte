@@ -319,9 +319,9 @@ async def on_command_error(ctx,error):
         await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
     
     try :
-        fichier=open("./Error.log","a")
+        fichier=open("./cmdError.log","a")
     except:
-        fichier=open("./Error.log","w")
+        fichier=open("./cmdError.log","w")
     print('Ignoring exception in command {}:'.format(ctx.command), file=fichier)
     traceback.print_exception(type(error), error, error.__traceback__, file=fichier)
 
