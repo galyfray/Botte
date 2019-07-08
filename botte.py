@@ -1,6 +1,8 @@
 import discord
 from discord.ext import tasks, commands
 from discord.ext.commands import Bot
+from datetime import date
+import datetime
 import asyncio
 import os
 import json
@@ -9,11 +11,44 @@ import traceback
 import sys
 
 bot=commands.Bot(command_prefix="bot!")
+#système de logs pour le stderr
 
-f=open("./Errors.log","w")
-f.close()
+def Aopen(path:str):
+    if os.path.exists(path):
+        fichier = open(path,"a")
+    else:
+        fichier=open(path,"w")
+    return fichier
 
-sys.stderr = open('./Errors.log', 'a')
+class logger(object):
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def log(logType:str,logs:str,ctx:commands.Context=None):
+        if logType == "global" :
+            fichier=Aopen("./Bot_Errors.log")
+        elif logType == "cmd" :
+            fichier=Aopen("./{}/commands.log".format(ctx.guild.name))
+        elif logType == "cmdError" :
+            fichier = Aopen("./Commands_Errors.log")
+        else:
+            if ctx == None:
+                cmd="none"
+            else:
+                cmd=ctx.command
+            logger.log("global", "Erreur lors de l'écriture des Logs : \n    |Cmd:{}\n   |logType:{}\n    |logs:{}".format(cmd,logType,logs))
+        logs = "[" + datetime.datetime.now().isoformat(sep=' ',timespec='seconds') + "]" + logs
+    
+        if not(logs.endswith("\n")):
+            logs=logs + "\n"
+        fichier.write(logs)
+
+    def write(self,data):
+        logger.log("global",data)
+
+sys.stderr = logger()
 
 #Définition des fonctions:
 def get_token():
@@ -252,6 +287,8 @@ async def welcomeMessage(ctx,isMP:bool,*,message:str):
             brief="envoie une news au joueur",
             usage="<newsTier as int> <News as string>")
 async def sendNews(ctx,news_tier:int,*,msg:str):
+    logger.log("cmd","envoi du message \"{}\" ".format(msg),ctx)
+    
     conf_dict=conf_load(ctx.guild.name)
     embed=discord.Embed(colour=discord.Colour.blue(),title="News en provenance de : {} ".format(ctx.guild.name))
     title="A destination des roles :"
@@ -259,22 +296,34 @@ async def sendNews(ctx,news_tier:int,*,msg:str):
         if int(conf_dict["roles"][role])>= news_tier:
             title=title + " , " + role 
     
+    logger.log("cmd", "titre : \"{}\"".format(title),ctx)
+
     embed.add_field(name=title,value=msg,inline=False)
     for member in ctx.guild.members :
+        logger.log("cmd", "\t évaluation du menbre " + member.name,ctx)
         T=get_max_member_tier(member)
         if T >= news_tier :
             if member.name in conf_dict["newsOffset"].keys():
+                logger.log("cmd","membre définit dans les configs")
                 if float(conf_dict["newsOffset"][member.name])<news_tier:
                     try:
                         await member.send(embed=embed)
+                        logger.log("cmd","\t\tmessage envoyer",ctx)
                     except discord.errors.Forbidden :
+                        logger.log("cmd","\t\tmessage non envoyer : discord.errors.Forbidden",ctx)
                         pass
+                else:
+                    logger.log("cmd","\t\tmessage non envoyer : offset supérieur  au tier ({})".format(conf_dict["newsOffset"][member.name]),ctx)
 
             else:
                 try:
                     await member.send(embed=embed)
+                    logger.log("cmd","\t\tmessage envoyer",ctx)
                 except discord.errors.Forbidden :
+                    logger.log("cmd","\t\tmessage non envoyer : discord.errors.Forbidden",ctx)
                     pass
+        else:
+            logger.log("cmd","\t\tmessage non envoyer : tier trop faible ({})".format(T),ctx)
     await ctx.send("la news a été envoyer ! ;)")
 
 
@@ -299,8 +348,6 @@ async def subNews(ctx,news_tier:int = math.inf):
         conf_dict["newsOffset"][name]=news_tier
         await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(news_tier))
     conf_write(ctx.guild.name,conf_dict)
-    
-
 
 #Event du bot
 
@@ -321,12 +368,7 @@ async def on_command_error(ctx,error):
     elif isinstance(error,commands.MissingRequiredArgument):
         await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
     
-    try :
-        fichier=open("./cmdError.log","a")
-    except:
-        fichier=open("./cmdError.log","w")
-    print('Ignoring exception in command {}:'.format(ctx.command), file=fichier)
-    traceback.print_exception(type(error), error, error.__traceback__, file=fichier)
+    logger.log("cmdError",'Ignoring exception in command {} with argument {} :\n\t\t\t{}\n\t\t\t{}\n\t\t\t{}'.format(ctx.command," ,".join(ctx.args),type(error), error, error.__traceback__))
 
 @bot.event
 async def on_member_join(member):
@@ -364,11 +406,10 @@ async def on_message(message):
             await message.channel.send("les commande via mp ne sont pas supporter par le bot :/")
         return
     if message.content.startswith("bot!"):
-        try:
-            fichier=open("./{}/commands.log".format(message.author.guild.name,),"a")
-        except:
-            fichier=open("./{}/commands.log".format(message.author.guild.name,),"w")
+        ctx= await bot.get_context(message)
+        logger.log("cmd","Lancement du process de :\"" + message.content + "\"\n", ctx )
         await bot.process_commands(message)
+        logger.log("cmd","=====Process Termier=====", ctx)
     conf_dict=conf_load(message.guild.name)
     
     if not(message.author.guild_permissions.administrator) and int(conf_dict["maxOffset"])!=0 and (len(message.mentions)>=0 or len(message.role_mentions)>=0):
