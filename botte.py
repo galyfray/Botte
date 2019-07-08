@@ -10,7 +10,10 @@ import sys
 
 bot=commands.Bot(command_prefix="bot!")
 
-command 2>"./Errors.log"
+f=open("./Errors.log","w")
+f.close()
+
+sys.stderr = open('./Errors.log', 'a')
 
 #Définition des fonctions:
 def get_token():
@@ -388,4 +391,3 @@ async def on_ready():
     print("bot pret a botter des gens !")
 
 bot.run(get_token())
-input()
