@@ -100,6 +100,51 @@ def get_min_member_tier(member):
             role_tier=min((role_tier,int(conf_dict["roles"][role.name])))
     return role_tier
 
+class item(object):
+    """creation de la class item contien de quoi definir un stack minecraft:
+       -nom
+       -id
+       -qte
+       -mod
+       -meta
+       -stacksize
+       """
+    def __init__(self,name:str="Air",id:int=0,meta:int=0,mod:str="minecraft",qte:int=0,stacksize:int=64):
+        self.name=name
+        self.id=id
+        self.meta=meta
+        self.mod=mod
+        self.qte=qte
+        self.stacksize=stacksize
+    def __add__(self,add):
+        item=self
+        if type(add)==type(self):
+            if (item.name==add.name and (item.id == add.id  or item.id=0 or add.id=0))or (add.id==item.id and (item.name=="Air" or add.name=="Air")):
+                item.qte+=add.qte
+                if item.name=="Air":
+                    item.name=add.name
+                if item.id==0:
+                    item.id=add.id
+        elif type(add)==type(0):
+            item.qte+=add
+        return item
+
+
+class shop(object):
+    """creation de la class shop elle seras definit par :
+       -nom du proprio
+       -item vendu
+       -item achter
+       -tag
+       """
+
+    def __init__(self,name:str ="",sell:item=item(),buy:item=item(),tag:list=list()):
+        self.name=name
+        self.sell=sell
+        self.buy=buy
+        self.tag=tag.append(sell.name)
+
+
 #remplacement de la commande d'help
 
 bot.remove_command("help")
@@ -348,6 +393,12 @@ async def subNews(ctx,news_tier:int = math.inf):
         conf_dict["newsOffset"][name]=news_tier
         await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(news_tier))
     conf_write(ctx.guild.name,conf_dict)
+
+@bot.command
+async def shop(ctx,keyword:str =""):
+    if len(keyword)==0:
+        
+
 
 #Event du bot
 
