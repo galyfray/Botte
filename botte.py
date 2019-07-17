@@ -100,6 +100,7 @@ def get_min_member_tier(member):
             role_tier=min((role_tier,int(conf_dict["roles"][role.name])))
     return role_tier
 
+
 class item(object):
     """creation de la class item contien de quoi definir un stack minecraft:
        -nom
@@ -109,6 +110,7 @@ class item(object):
        -meta
        -stacksize
        """
+    
     def __init__(self,name:str="Air",id:int=0,meta:int=0,mod:str="minecraft",qte:int=0,stacksize:int=64):
         self.name=name
         self.id=id
@@ -116,10 +118,11 @@ class item(object):
         self.mod=mod
         self.qte=qte
         self.stacksize=stacksize
+    
     def __add__(self,add):
         item=self
         if type(add)==type(self):
-            if (item.name==add.name and (item.id == add.id  or item.id=0 or add.id=0))or (add.id==item.id and (item.name=="Air" or add.name=="Air")):
+            if ((item.name==add.name and (item.id == add.id  or item.id==0 or add.id==0)) or (add.id==item.id and (item.name=="Air" or add.name=="Air"))) and item.meta == add.meta:
                 item.qte+=add.qte
                 if item.name=="Air":
                     item.name=add.name
@@ -128,13 +131,36 @@ class item(object):
         elif type(add)==type(0):
             item.qte+=add
         return item
+    
+    def to_dict(self):
+        D=dict()
+        D["name"]=self.name
+        D["id"]=self.id
+        D["meta"]=self.meta
+        D["mod"]=self.mod
+        D["qte"]=self.qte
+        D["stacksize"]=self.stacksize
+        return D
+    
+    @staticmethod
+    def from_dict(item_dict:dict):
+        I=item()
+        I.name=item_dict["name"]
+        I.id=item_dict["id"]
+        I.meta=item_dict["meta"]
+        I.mod=item_dict["mod"]
+        I.qte=item_dict["qte"]
+        I.stacksize=item_dict["stacksize"]
+        return I
+
+
 
 
 class shop(object):
     """creation de la class shop elle seras definit par :
        -nom du proprio
        -item vendu
-       -item achter
+       -item acheter
        -tag
        """
 
@@ -143,6 +169,35 @@ class shop(object):
         self.sell=sell
         self.buy=buy
         self.tag=tag.append(sell.name)
+    
+    def to_dict(self):
+        D=dict()
+        D["name"]=self.name
+        D["sell"]=self.sell.to_dict()
+        D["buy"]=self.buy.to_dict()
+        D["tag"]=self.tag
+        return D
+    
+    @staticmethod
+    def from_dict(shop_dict:dict):
+        S=shop()
+        S.name=shop_dict["name"]
+        S.sell=item.from_dict(shop_dict["sell"])
+        S.buy=item.from_dict(shop_dict["buy"])
+        S.tag=shop_dict["tag"]
+        return S
+
+class shops(object):
+    """shops représente tout les shop du serv discord"""
+    def __init__(self,guild_name:str):
+        self._json=json.load(Aopen(guild_name + "/shops.json"))
+        self.shops=[]
+        for key in self._json:
+            self.shops=
+    
+    
+
+
 
 
 #remplacement de la commande d'help
