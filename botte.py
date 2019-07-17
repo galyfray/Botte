@@ -40,7 +40,7 @@ class logger(object):
                 cmd=ctx.command
             logger.log("global", "Erreur lors de l'écriture des Logs : \n    |Cmd:{}\n   |logType:{}\n    |logs:{}".format(cmd,logType,logs))
         logs = "[" + datetime.datetime.now().isoformat(sep=' ',timespec='seconds') + "]" + logs
-    
+
         if not(logs.endswith("\n")):
             logs=logs + "\n"
         fichier.write(logs)
@@ -49,7 +49,6 @@ class logger(object):
         logger.log("global",data)
 
 sys.stderr = logger()
-
 #Définition des fonctions:
 def get_token():
     try:
@@ -101,7 +100,7 @@ def get_min_member_tier(member):
     return role_tier
 
 
-class item(object):
+class Item(object):
     """creation de la class item contien de quoi definir un stack minecraft:
        -nom
        -id
@@ -111,7 +110,7 @@ class item(object):
        -stacksize
        """
     
-    def __init__(self,name:str="Air",id:int=0,meta:int=0,mod:str="minecraft",qte:int=0,stacksize:int=64):
+    def __init__(self,name:str = "Air",id:int = 0,meta:int = 0,mod:str = "minecraft",qte:int = 0,stacksize:int = 64):
         self.name=name
         self.id=id
         self.meta=meta
@@ -121,8 +120,8 @@ class item(object):
     
     def __add__(self,add):
         item=self
-        if type(add)==type(self):
-            if ((item.name==add.name and (item.id == add.id  or item.id==0 or add.id==0)) or (add.id==item.id and (item.name=="Air" or add.name=="Air"))) and item.meta == add.meta:
+        if type(add) == type(self):
+            if ((item.name == add.name and (item.id == add.id  or item.id == 0 or add.id == 0)) or (add.id == item.id and (item.name == "Air" or add.name == "Air"))) and item.meta == add.meta:
                 item.qte+=add.qte
                 if item.name=="Air":
                     item.name=add.name
@@ -156,7 +155,7 @@ class item(object):
 
 
 
-class shop(object):
+class Shop(object):
     """creation de la class shop elle seras definit par :
        -nom du proprio
        -item vendu
@@ -164,7 +163,7 @@ class shop(object):
        -tag
        """
 
-    def __init__(self,name:str ="",sell:item=item(),buy:item=item(),tag:list=list()):
+    def __init__(self,name:str = "",sell:item=item(),buy:item=item(),tag:list = list()):
         self.name=name
         self.sell=sell
         self.buy=buy
@@ -180,22 +179,22 @@ class shop(object):
     
     @staticmethod
     def from_dict(shop_dict:dict):
-        S=shop()
+        S=Shop()
         S.name=shop_dict["name"]
-        S.sell=item.from_dict(shop_dict["sell"])
-        S.buy=item.from_dict(shop_dict["buy"])
+        S.sell=Item.from_dict(shop_dict["sell"])
+        S.buy=Item.from_dict(shop_dict["buy"])
         S.tag=shop_dict["tag"]
         return S
 
-class shops(object):
+class Shops(object):
     """shops représente tout les shop du serv discord"""
     def __init__(self,guild_name:str):
         self._json=json.load(Aopen(guild_name + "/shops.json"))
         self.shops=[]
         for key in self._json:
             self.shops=
-    
-    
+
+
 
 
 
