@@ -167,7 +167,16 @@ class Shop(object):
         self.name=name
         self.sell=sell
         self.buy=buy
-        self.tag=tag.append(sell.name)
+        self.tag=[x.upper() for x in tag.append(sell.name) ]
+    
+    def __contains__(self,obj):
+        if type(obj) == type(""):
+            if obj.upper() in self.tag :
+                return True
+            else:
+                return False
+        else:
+            return False
     
     def to_dict(self):
         D=dict()
@@ -188,12 +197,23 @@ class Shop(object):
 
 class Shops(object):
     """shops représente tout les shop du serv discord"""
-    def __init__(self,guild_name:str):
-        self._json=json.load(Aopen(guild_name + "/shops.json"))
+    def __init__(self,guild_name:str,_dict:dict):
+        if len(guild_name) == 0:
+            raise AttributeError("no guild name")
+        if len(_dict) == 0 :
+            self._json=json.load(Aopen(guild_name + "/shops.json"))
         self.shops=[]
         for key in self._json:
-            self.shops=
-
+            self.shops+=self._json[keys]
+    def __iter__(self):
+        return self.shops
+    
+    def _get_dict(self):
+        return self._json
+        
+    def _set_dict(self):
+        raise "read only"
+    dict=property(_get_dict,_set_dict)
 
 
 
@@ -537,3 +557,4 @@ async def on_ready():
     print("bot pret a botter des gens !")
 
 bot.run(get_token())
+
