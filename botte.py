@@ -196,28 +196,63 @@ class Shop(object):
         return S
 
 class Shops(object):
-    """shops représente tout les shop du serv discord"""
-    def __init__(self,guild_name:str,_dict:dict):
-        if len(guild_name) == 0:
-            raise AttributeError("no guild name")
-        if len(_dict) == 0 :
-            self._json=json.load(Aopen(guild_name + "/shops.json"))
+    """shops représente tout les shop du serv discord
+    -guild_name ou _dict est obligatoire
+    -_dict est un dictionnaire de la forme: {"shop group name":[{shop_dict},{shop_dict}],"shop group name 2 ":[{shop_dict},{shop_dict}] ... }"""
+    def __init__(self,guild_name:str="",_dict:dict={}):
+        
         self.shops=[]
-        for key in self._json:
-            self.shops+=self._json[keys]
+        
+        if len(_dict) == 0 :
+            if len(guild_name) == 0:
+                raise AttributeError("no guild name")
+            else:
+                self._dict=json.load(Aopen("./{}/shops.json".format(guild_name)))       
+        else:
+            self._dict=_dict
+        for key in self._dict:
+            for shop in self._dict[key]:
+                if not type(shop)==type({}):
+                    raise ValueError("format de l'argument _dict non valide {} est attendu {} a été trouver".format(type({}),type(shop)))
+                else:
+                    self.shops+=Shop.from_dict(shop)
+    
+    def __getitem__(self,index):
+        return self.shops[index]
+    
+    def __delitem__(self,index):
+        dico=self.shops[index].to_dict
+        del self.shops[index]
+        for key in self._dict:
+            for c,shop in enumerate(self._dict[key]):
+                if dico == shop :
+                    del self._dict[key][c]
+
     def __iter__(self):
         return self.shops
     
     def _get_dict(self):
-        return self._json
-        
-    def _set_dict(self):
-        raise "read only"
-    dict=property(_get_dict,_set_dict)
+        return self._dict
+    
+    def dump(self,guild_name:str):
+        with open("./{}/shops.json".format(guild_name),"w+") as f:
+            json.dump(self._dict,f,sort_keys=True, indent=4)
 
+    def with_tag(self,tag:str):
+        D={tag:[]}
+        for shop in self.shops:
+            if tag in shop:
+                D[tag].append(shop.to_dict())
+        return Shops(_dict=D)
+    
+    def append(self,shop:Shop,cat:str):
+        self.shops.append(shop)
+        self._dict[cat].append(shop.to_dict)
 
+    #def _set_dict(self):
+    #    raise "read only"
 
-
+    dictionary=property(_get_dict)
 
 #remplacement de la commande d'help
 
@@ -470,7 +505,11 @@ async def subNews(ctx,news_tier:int = math.inf):
 
 @bot.command
 async def shop(ctx,keyword:str =""):
+    shops=Shops(ctx.guild.name)
+    msg=""
     if len(keyword)==0:
+        for shop in shops :
+            msg+=
         
 
 
@@ -532,7 +571,7 @@ async def on_message(message):
         return
     if message.content.startswith("bot!"):
         ctx= await bot.get_context(message)
-        logger.log("cmd","Lancement du process de :\"" + message.content + "\"\n", ctx )
+        logger.log("cmd","Lancement du process de :\"" + message.content + "\" par : {} \n".format(message.author.name), ctx )
         await bot.process_commands(message)
         logger.log("cmd","=====Process Termier=====", ctx)
     conf_dict=conf_load(message.guild.name)
