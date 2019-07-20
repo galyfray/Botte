@@ -549,8 +549,8 @@ async def on_command_error(ctx,error):
         await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
         return
     logger.log("cmdError",'Ignoring exception in command :' + ctx.command.name + ' with argument {} :\n\t\t\t{}\n\t\t\t{}'.format(" ,".join([str(x) for x in ctx.args]) , type(error) , error ))
-    error=error.__traceback__
-    traceback.print_tb(error)
+    for lines in traceback.format_exception(type(error),error,error.__traceback__):
+        logger.log("cmdError",lines)
     #while error.__traceback__ != None:
     #    logger.log("cmdError","caused by: {} : {} ".format(type(error) , error))
     #    error=error.__traceback__
