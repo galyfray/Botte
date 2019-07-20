@@ -526,8 +526,8 @@ async def shopList(ctx,*keyword:str):
     await ctx.message.send(msg)
         
 @bot.command()
-async def shopAdd(ctx,*arg:str):
-    await ctx.send(str(dict(arg)))
+async def shopAdd(ctx,*arg:str,**kwargs):
+    await ctx.send(str(arg) + "\n" + str(kwargs))
 
 #Event du bot
 
@@ -548,7 +548,12 @@ async def on_command_error(ctx,error):
     elif isinstance(error,commands.MissingRequiredArgument):
         await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
         return
-    logger.log("cmdError",'Ignoring exception in command :' + ctx.command.name + ' with argument {} :\n\t\t\t{}\n\t\t\t{}\n\t\t\t{}'.format(" ,".join(ctx.args) , type(error) , error , error.__traceback__))
+    logger.log("cmdError",'Ignoring exception in command :' + ctx.command.name + ' with argument {} :\n\t\t\t{}\n\t\t\t{}'.format(" ,".join([str(x) for x in ctx.args]) , type(error) , error ))
+    error=error.__traceback__
+    traceback.print_tb(error)
+    #while error.__traceback__ != None:
+    #    logger.log("cmdError","caused by: {} : {} ".format(type(error) , error))
+    #    error=error.__traceback__
 
 @bot.event
 async def on_member_join(member):
