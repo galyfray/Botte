@@ -143,7 +143,7 @@ class Item(object):
     
     @staticmethod
     def from_dict(item_dict:dict):
-        I=item()
+        I=Item()
         I.name=item_dict["name"]
         I.id=item_dict["id"]
         I.meta=item_dict["meta"]
@@ -163,11 +163,11 @@ class Shop(object):
        -tag
        """
 
-    def __init__(self,name:str = "",sell:item=item(),buy:item=item(),tag:list = list()):
+    def __init__(self,name:str = "",sell:Item=Item(),buy:Item=Item(),tag:list = list()):
         self.name=name
         self.sell=sell
         self.buy=buy
-        self.tag=[x.upper() for x in tag.append(sell.name) ]
+        self.tag=[x.upper() for x in tag.append(sell.name).append(buy.name) ]
     
     def __contains__(self,obj):
         if type(obj) == type(""):
@@ -238,10 +238,15 @@ class Shops(object):
         with open("./{}/shops.json".format(guild_name),"w+") as f:
             json.dump(self._dict,f,sort_keys=True, indent=4)
 
-    def with_tag(self,tag:str):
+    def with_tags(self,tag:str):
         D={tag:[]}
+        tags=tag.split()
         for shop in self.shops:
-            if tag in shop:
+            test=True
+            for tag in tags: 
+                if not(tag in shop):
+                    test=False
+            if test:  
                 D[tag].append(shop.to_dict())
         return Shops(_dict=D)
     
@@ -503,15 +508,26 @@ async def subNews(ctx,news_tier:int = math.inf):
         await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(news_tier))
     conf_write(ctx.guild.name,conf_dict)
 
-@bot.command
-async def shop(ctx,keyword:str =""):
+@bot.command(aliases=["shop","shoplist","shl"],
+            description="liste tout les shops trouvés répondant aux critères donné, les tags sont à séparer avec des espaces aucun tag liste tout les shops ",
+            brief="effectue une recherche dans les shops",
+            usage="<optional: keyword as string>")
+async def shopList(ctx,*keyword:str):
+    
     shops=Shops(ctx.guild.name)
-    msg=""
-    if len(keyword)==0:
-        for shop in shops :
-            msg+=
-        
+    msg="liste des shops trouvé :\n"
+    
+    if len(keyword)!=0:
+        shops=shops.with_tags(keyword) 
+        logger.log("cmd","aucun argument trouver",ctx)
 
+    for c,shop in enumerate(shops) :
+        msg+="{0}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
+    await ctx.message.send(msg)
+        
+@bot.command()
+async def shopAdd(ctx,*arg:str):
+    await ctx.send(str(dict(arg)))
 
 #Event du bot
 
@@ -531,8 +547,8 @@ async def on_command_error(ctx,error):
         return
     elif isinstance(error,commands.MissingRequiredArgument):
         await ctx.send("argument manquant taper bot!help {} pour voir le type des argument".format(ctx.command))
-    
-    logger.log("cmdError",'Ignoring exception in command {} with argument {} :\n\t\t\t{}\n\t\t\t{}\n\t\t\t{}'.format(ctx.command," ,".join(ctx.args),type(error), error, error.__traceback__))
+        return
+    logger.log("cmdError",'Ignoring exception in command :' + ctx.command.name + ' with argument {} :\n\t\t\t{}\n\t\t\t{}\n\t\t\t{}'.format(" ,".join(ctx.args) , type(error) , error , error.__traceback__))
 
 @bot.event
 async def on_member_join(member):
