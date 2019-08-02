@@ -9,6 +9,7 @@ import json
 import math
 import traceback
 import sys
+from logger import logger
 
 bot=commands.Bot(command_prefix="bot!")
 #système de logs pour le stderr
@@ -19,34 +20,6 @@ def Aopen(path:str):
     else:
         fichier=open(path,"w")
     return fichier
-
-class logger(object):
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def log(logType:str,logs:str,ctx:commands.Context=None):
-        if logType == "global" :
-            fichier=Aopen("./Bot_Errors.log")
-        elif logType == "cmd" :
-            fichier=Aopen("./{}/commands.log".format(ctx.guild.name))
-        elif logType == "cmdError" :
-            fichier = Aopen("./Commands_Errors.log")
-        else:
-            if ctx == None:
-                cmd="none"
-            else:
-                cmd=ctx.command
-            logger.log("global", "Erreur lors de l'écriture des Logs : \n    |Cmd:{}\n   |logType:{}\n    |logs:{}".format(cmd,logType,logs))
-        logs = "[" + datetime.datetime.now().isoformat(sep=' ',timespec='seconds') + "]" + logs
-
-        if not(logs.endswith("\n")):
-            logs=logs + "\n"
-        fichier.write(logs)
-
-    def write(self,data):
-        logger.log("global",data)
 
 sys.stderr = logger()
 #Définition des fonctions:
@@ -71,6 +44,16 @@ def conf_op(guild_name: str,mod: str):
         json.dump(D,f)
         f.close()
     return open("./" + guild_name + "/server.json",mod)
+
+def shop_op(guild_name: str,mod: str):
+    if not(os.path.isdir("./" + guild_name)):
+        os.mkdir("./" + guild_name)
+    if not(os.path.exists("./" + guild_name + "/shops.json")):
+        f=open("./" + guild_name + "/shops.json","w")
+        D={}
+        json.dump(D,f)
+        f.close()
+    return open("./" + guild_name + "/shops.json",mod)
 
 def conf_load(guild_name: str) -> dict:
     with conf_op(guild_name,"r") as f:
@@ -167,14 +150,17 @@ class Shop(object):
         self.name=name
         self.sell=sell
         self.buy=buy
-        self.tag=[x.upper() for x in tag.append(sell.name).append(buy.name) ]
+        tag.append(sell.name)
+        tag.append(buy.name)
+        self.tag=[x.upper() for x in tag]
     
     def __contains__(self,obj):
         if type(obj) == type(""):
-            if obj.upper() in self.tag :
-                return True
-            else:
-                return False
+            test=False
+            for tag in self.tag:
+                if obj.upper() in tag :
+                    test=True
+            return test
         else:
             return False
     
@@ -207,15 +193,16 @@ class Shops(object):
             if len(guild_name) == 0:
                 raise AttributeError("no guild name")
             else:
-                self._dict=json.load(Aopen("./{}/shops.json".format(guild_name)))       
+                self._dict=json.load(shop_op(guild_name,"r"))
         else:
             self._dict=_dict
         for key in self._dict:
             for shop in self._dict[key]:
                 if not type(shop)==type({}):
+                    logger.log("cmdError","format du dict reçus : " + str(self._dict))
                     raise ValueError("format de l'argument _dict non valide {} est attendu {} a été trouver".format(type({}),type(shop)))
                 else:
-                    self.shops+=Shop.from_dict(shop)
+                    self.shops.append(Shop.from_dict(shop))
     
     def __getitem__(self,index):
         return self.shops[index]
@@ -229,14 +216,26 @@ class Shops(object):
                     del self._dict[key][c]
 
     def __iter__(self):
-        return self.shops
+        return iter(self.shops)
     
+    def __getattr__(self,index):
+        return self.shops[index]
+
+    def __delattr__(self,index):
+        dico=self[index].to_dict()
+        for key in self.dictionary:
+            for c,shop in enumerate(self.dictionary[key]):
+                if shop == dico:
+                    del self.dictionary[key][c]
+        del self.shops[index]
+
     def _get_dict(self):
         return self._dict
     
     def dump(self,guild_name:str):
         with open("./{}/shops.json".format(guild_name),"w+") as f:
-            json.dump(self._dict,f,sort_keys=True, indent=4)
+            k=self._dict
+            json.dump(k,f,sort_keys=True, indent=4)
 
     def with_tags(self,tag:str):
         D={tag:[]}
@@ -252,10 +251,13 @@ class Shops(object):
     
     def append(self,shop:Shop,cat:str):
         self.shops.append(shop)
-        self._dict[cat].append(shop.to_dict)
+        self._dict[cat].append(shop.to_dict())
 
-    #def _set_dict(self):
-    #    raise "read only"
+    def suppr(self,shopRM:Shop):
+        RMdict=shopRM.to_dict()
+        for c,shop in enumerate(self.shops):
+            if shop.to_dict()==RMdict:
+                del self[c]
 
     dictionary=property(_get_dict)
 
@@ -306,12 +308,12 @@ async def help(ctx,command: str = ""):
                 test=True
                 tier="Tier " + str(conf_dict["commands"][command])
             else:
-                await ctx.send("commande inconnue :/ 1 {}".format(test))
+                await ctx.send("commande inconnue :/ {}".format(test))
         elif bot.get_command(command) in bot.commands and ctx.message.author.guild_permissions.administrator :
             test = True
             tier="ADMIN"
         else:
-            await ctx.send("commande inconnue :/ 2 {}".format(command))
+            await ctx.send("commande inconnue :/ {}".format(command))
         if test :
             embed=discord.Embed(colour=discord.Colour.blue(),title="Help for the {} command".format(command))
             cmd=bot.get_command(command)
@@ -513,22 +515,110 @@ async def subNews(ctx,news_tier:int = math.inf):
             brief="effectue une recherche dans les shops",
             usage="<optional: keyword as string>")
 async def shopList(ctx,*keyword:str):
+    try :
+        shops=Shops(ctx.guild.name)
+    except json.JSONDecodeError : 
+        await ctx.send("aucun shop n'as été trouver on dirais bien !")
+    else:
+        msg="liste des shops trouvé :\n"
+    
+        if len(keyword)!=0:
+            keyword=" ".join(keyword)
+            shops=shops.with_tags(keyword)
+        else:
+            shops=Shops(ctx.guild.name)
+            logger.log("cmd","aucun argument trouver",ctx)
+
+        for c,shop in enumerate(shops) :
+            msg+="{}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
+        await ctx.send(msg)
+        
+@bot.command(aliases=["shopadd","shopA"],
+            description="créer un nouveaux shop",
+            brief="créer un nouveaux shop",
+            usage="<Nom_item_vendu as string list> <qte_item_vendu as int> <Nom_item_acheter as string list> <qte_item_acheter as int> <tags as string list>")
+async def shopAdd(ctx,*arg):
+    
+    sell=Item("")
+    test=True
+    c=0
+    
+    logger.log("cmd","\trécupération du nom du premier item et de sa quantité",ctx)
+
+    while test:
+        elem=arg[c]
+        try:
+            elem=int(elem)
+            test=False
+        except ValueError:
+            sell.name += " " + elem
+        c +=1
+        
+    sell.qte=int(arg[c-1])
+
+    logger.log("cmd","\trécupération du nom du deuxième item et de sa quantité",ctx)
+    buy=Item("")
+    
+    test=True
+    while test:
+        elem=arg[c]
+        try:
+            elem=int(elem)
+            test=False
+        except ValueError:
+            buy.name += " " + elem
+        c +=1
+        
+    buy.qte=int(arg[c-1])
+
+    shop=Shop(ctx.message.author.name,sell,buy,[arg[x].upper() for x in range(c,len(arg,)-1)])
+
+    logger.log("cmd","\trécupération des shops existant et ajout",ctx)
+    try :
+        shops=Shops(ctx.guild.name)
+        shops.append(shop,shop.name)
+    except json.JSONDecodeError:
+        logger.log("cmd","/!\\WARNING/!\\ fichier de shops illisible, ingnorer cette ligne si la commande créais le 1er shop sinon le fichier a été coromput ",ctx)
+        shops=Shops(_dict={shop.name:[shop.to_dict()]})
+    
+    logger.log("cmd","\técriture des shops",ctx)
+    shops.dump(ctx.guild.name)
+
+    await ctx.send("le shop a été ajouter a la liste !")
+
+@bot.command(aliases=["shoprm","shopRm","shopRM","shop_rm"],
+            description="permet de supprimer un shop via sont numéraux dans la liste donné lors de l'appelle de la commande avec l'argument 'l' la commande accepte '*' comme argument pour indiquer tous",
+            brief="permet de suprimer un shop via sont numéraux dans la list bot!help shopRemove pour plus d'information",
+            usage="<shop number or '*'>")
+async def shopRemove(ctx,nb:str):
     
     shops=Shops(ctx.guild.name)
-    msg="liste des shops trouvé :\n"
+    if ctx.message.author.name in shops.dictionary.keys():
+        playerShops=Shops(_dict={ctx.message.author.name:shops.dictionary[ctx.message.author.name]})
+        if nb != "l":
+            try:
+                nb=int(nb)
+            except ValueError:
+                if "*" != nb :
+                    commands.BadArgument()
+                else:
+                    for shop in playerShops.shops:
+                        shops.suppr(shop)
+                    shops.dump(ctx.guild.name)
+                    await ctx.send("tout vos shop on été supprimé !")
+                    return
+            shops.suppr(playerShops[nb])
+            shops.dump(ctx.guild.name)
+            await ctx.send("le shop n° {} a été suprimer".format(nb))
+        else:
+            msg="Vos shops :\n"
+            for c,shop in enumerate(playerShops):
+                msg+="{}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
+            await ctx.send(msg)
+    else:
+        await ctx.send("vous n'avez encore aucun shop O.o")
     
-    if len(keyword)!=0:
-        shops=shops.with_tags(keyword) 
-        logger.log("cmd","aucun argument trouver",ctx)
-
-    for c,shop in enumerate(shops) :
-        msg+="{0}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
-    await ctx.message.send(msg)
         
-@bot.command()
-async def shopAdd(ctx,*arg:str,**kwargs):
-    await ctx.send(str(arg) + "\n" + str(kwargs))
-
 #Event du bot
 
 @bot.event
@@ -551,9 +641,7 @@ async def on_command_error(ctx,error):
     logger.log("cmdError",'Ignoring exception in command :' + ctx.command.name + ' with argument {} :\n\t\t\t{}\n\t\t\t{}'.format(" ,".join([str(x) for x in ctx.args]) , type(error) , error ))
     for lines in traceback.format_exception(type(error),error,error.__traceback__):
         logger.log("cmdError",lines)
-    #while error.__traceback__ != None:
-    #    logger.log("cmdError","caused by: {} : {} ".format(type(error) , error))
-    #    error=error.__traceback__
+
 
 @bot.event
 async def on_member_join(member):
