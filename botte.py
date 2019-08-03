@@ -208,7 +208,7 @@ class Shops(object):
         return self.shops[index]
     
     def __delitem__(self,index):
-        dico=self.shops[index].to_dict
+        dico=self.shops[index].to_dict()
         del self.shops[index]
         for key in self._dict:
             for c,shop in enumerate(self._dict[key]):
@@ -217,17 +217,6 @@ class Shops(object):
 
     def __iter__(self):
         return iter(self.shops)
-    
-    def __getattr__(self,index):
-        return self.shops[index]
-
-    def __delattr__(self,index):
-        dico=self[index].to_dict()
-        for key in self.dictionary:
-            for c,shop in enumerate(self.dictionary[key]):
-                if shop == dico:
-                    del self.dictionary[key][c]
-        del self.shops[index]
 
     def _get_dict(self):
         return self._dict
@@ -591,9 +580,11 @@ async def shopAdd(ctx,*arg):
             brief="permet de suprimer un shop via sont numéraux dans la list bot!help shopRemove pour plus d'information",
             usage="<shop number or '*'>")
 async def shopRemove(ctx,nb:str):
-    
+    logger.log("cmd","\trécupération des shops existant",ctx)
     shops=Shops(ctx.guild.name)
+    
     if ctx.message.author.name in shops.dictionary.keys():
+        logger.log("cmd","\trécupération des shops du joueur",ctx)
         playerShops=Shops(_dict={ctx.message.author.name:shops.dictionary[ctx.message.author.name]})
         if nb != "l":
             try:
@@ -602,15 +593,18 @@ async def shopRemove(ctx,nb:str):
                 if "*" != nb :
                     commands.BadArgument()
                 else:
+                    logger.log("cmd","\tsuppression de tout les shops du joueur",ctx)
                     for shop in playerShops.shops:
                         shops.suppr(shop)
                     shops.dump(ctx.guild.name)
                     await ctx.send("tout vos shop on été supprimé !")
                     return
+            logger.log("cmd","\tsuppression du shop demander par le joueur",ctx)
             shops.suppr(playerShops[nb])
             shops.dump(ctx.guild.name)
             await ctx.send("le shop n° {} a été suprimer".format(nb))
         else:
+            logger.log("cmd","\taffichage des shops du joueur",ctx)
             msg="Vos shops :\n"
             for c,shop in enumerate(playerShops):
                 msg+="{}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
