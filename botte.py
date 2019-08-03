@@ -519,7 +519,7 @@ async def shopList(ctx,*keyword:str):
             logger.log("cmd","aucun argument trouver",ctx)
 
         for c,shop in enumerate(shops) :
-            msg+="{}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
+            msg+="{}: Vend :{} {} contre :{} {} |{}\n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name,shop.name)
         await ctx.send(msg)
         
 @bot.command(aliases=["shopadd","shopA"],
