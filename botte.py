@@ -37,12 +37,16 @@ sys.stderr = logger()  # changement du stderr vers la class logger
 
 
 def get_token():
+
     try:
+
         file = open("token.txt", "r")
         token = file.read()
         file.close()
         return token
+
     except:
+
         logger.log(
             "global", "une erreur est survenue le fichier token.txt n'as pas pus être ouvert")
         return ""
@@ -83,59 +87,89 @@ bot.remove_command("help")
              brief="commande d'aide pour Botte",
              usage="<command as String>")
 async def help(ctx, command: str = ""):
+    
     exception = ("help", "subNews")
     conf = config(ctx.guild.name, "server.json")
     M = get_max_member_tier(ctx.message.author)
+    
     if len(command) == 0:
+        
         embed_dict = {}
         for cmd in bot.commands:
+            
             if cmd.name in exception:
+                
                 tier = "ALL"
                 if not(tier in embed_dict):
+                    
                     embed_dict[tier] = {}
                 embed_dict[tier][cmd.name] = cmd.brief
+            
             elif cmd.name in conf.config["commands"].keys():
+                
                 if int(conf.config["commands"][cmd.name]) <= M or ctx.message.author.guild_permissions.administrator:
+                    
                     tier = "Tier " + str(conf.config["commands"][cmd.name])
                     if not(tier in embed_dict):
+                        
                         embed_dict[tier] = {}
                     embed_dict[tier][cmd.name] = cmd.brief
+            
             elif ctx.message.author.guild_permissions.administrator:
                 tier = "ADMIN"
                 if not(tier in embed_dict):
+                   
                     embed_dict[tier] = {}
                 embed_dict[tier][cmd.name] = cmd.brief
+        
         embed = discord.Embed(colour=discord.Colour.blue(),
                               title="Help command for botte")
         for key in embed_dict.keys():
+            
             for kei in embed_dict[key].keys():
+                
                 embed.add_field(name=kei, value=str(
                     embed_dict[key][kei]) + " |" + key, inline=False)
         try:
+            
             await ctx.message.author.send(embed=embed)
             await ctx.send("l'aide t'as été envoyer via MP :thumbsup:")
+        
         except discord.errors.Forbidden:
+            
             await ctx.send("ah bah non je peut pas t'envoyer l'help en mp débrouille toi tout seul !")
     else:
+        
         test = False
         tier = ""
-
         cmd = discord.utils.find(lambda c: command in c.aliases, bot.commands)
+        
         if cmd != None:
+            
             command = cmd.name
 
         if command in conf.config["commands"].keys():
+            
             if int(conf.config["commands"][command]) <= M or ctx.message.author.guild_permissions.administrator:
+                
                 test = True
                 tier = "Tier " + str(conf.config["commands"][command])
+            
             else:
+                
                 await ctx.send("commande inconnue :/ {}".format(test))
+        
         elif bot.get_command(command) in bot.commands and ctx.message.author.guild_permissions.administrator:
+            
             test = True
             tier = "ADMIN"
+        
         else:
+            
             await ctx.send("commande inconnue :/ {}".format(command))
+        
         if test:
+            
             embed = discord.Embed(colour=discord.Colour.blue(
             ), title="Help for the {} command".format(command))
             cmd = bot.get_command(command)
@@ -157,13 +191,18 @@ async def help(ctx, command: str = ""):
              brief="définit le tier des roles du bot",
              usage="<tier as number> <roles as role.mention list>")
 async def setRoleTier(ctx, tier: int):
+    
     role_list = []
     if len(ctx.message.role_mentions) == 0:
+        
         await ctx.send("commande invalide taper bot!help\nle rôle doit pouvoir être mentioner")
+    
     else:
+        
         conf = config(ctx.guild.name, "server.json")
 
         for role in ctx.message.role_mentions:
+            
             name = role.name
             role_list.append(name)
             conf.config["roles"][name] = tier
@@ -171,6 +210,199 @@ async def setRoleTier(ctx, tier: int):
         conf.dump()
 
         await ctx.send('le tier {} est associer au rôle(s): {}'.format(tier, ' ,'.join(role_list)))
+
+@bot.command(aliases=["sct","setCommandT","setCmdT"],
+            description="définit le tier des comamndes du bot, ne suporte pas les aliases",
+            brief="définit le tier des comamndes du bot",
+            usage="<tier as number> <commands as string list>")
+async def setCommandTier(ctx,tier: int,*commands:str):
+    
+    cmd_list=[]
+    conf=config(ctx.guild.name,"server.json")
+    for command in commands:
+
+        cmd=bot.get_command(command)
+
+        if cmd == None:
+            
+            cmd = discord.utils.find(lambda c: command in c.aliases, bot.commands)
+        
+        if cmd != None:
+            conf.config["commands"][cmd.name]=tier
+            cmd_list.append(cmd.name) 
+
+    conf.dump()
+
+    if len(cmd_list) !=0 :
+        
+        await ctx.send('le tier {} est associer aux command(s): {}'.format(tier,' , '.join(cmd_list)))
+    
+    else :
+
+        await ctx.send("Aucune commande n'as été détecter, bot!help pour la liste des commandes")
+
+@bot.command(aliases=["sdr","setDefaultR","defaulRank","defaultR","dr"],
+        description="définit le role par défaut attribuer au utilisateur qui rejoingne le server",
+        brief="définit le role par défaut",
+        usage="<role as role.mention>")
+async def setDefaultRank(ctx):
+
+    if len(ctx.message.role_mentions)==0:
+        
+        await ctx.send("usage incorrecte taper bot!help pour voir la sintaxe\nle role doit pouvoir être mentioner")
+    
+    else:
+        
+        conf=config(ctx.guild.name,"server.json")
+        C=[]
+        
+        for role in ctx.message.role_mentions:
+            
+            C.append(role.name)
+            conf.config["defaltRank"]=C
+        
+        conf.dump()
+        await ctx.send("roles par défault :{}".format(' , '.join(C)))
+
+@bot.command(aliases=["sdt","setDefaultT","defaultT","defaultTier"],
+        description="définit le tier par défault des commandes",
+        brief="définit le tier par défault des commandes",
+        usage="<tier as number>")
+async def setDefaultTier(ctx,tier):
+    try:
+        
+        int(tier)
+    
+    except:
+        
+        await ctx.send("commande invalide taper bot!help pour voir les commandes")
+        return
+    
+    conf=config(ctx.guild.name,"server.json")
+    
+    for cmd in bot.commands:
+        
+        if not(cmd.name in conf.config["commands"].keys()):
+            
+            conf.config["commands"][cmd.name]=tier
+    
+    conf.dump()
+    await ctx.send("tier par default des commande définit a: {}\n les configue existance n'on pas été écraser".format(tier))
+
+@bot.command(aliases=["lien"],
+            description="renvoie un lien définit par setLink",
+            brief="renvoie un lien définit par setLink",
+            usage="")
+async def link(ctx):
+    conf=config(ctx.guild.name,"server.json")
+    if "link" in conf.config.keys():
+        await ctx.send(conf.config["link"])
+    else:
+        await ctx.send("aucun lien n'as été définit :/")
+
+@bot.command(aliases=["sl","setL","setLien"],
+            description="définit le lien de la commande link, un message peut être ajouter",
+            brief="définit le lien pour link",
+            usage="<link as string>")
+async def setLink(ctx,*,link):
+    
+    conf=config(ctx.guild.name,"server.json")
+    conf.config["link"]=link
+    conf.dump()
+    
+    await ctx.send("lien sauvegarder :)",delete_after = 30)
+    await ctx.message.delete(delay = 20)    
+
+@bot.command(aliases=["vtf","hset","hierach","h"],
+            description="définit l'écart max de tier entre une personne mentionnant et le mentioner" + \
+            "\nexpl:si définit a 1 alors si tier 1 mentione tier2 ok si tier 1 mentionne tier 3 pasok" + \
+            "\nvaleur négative ou 0 pour désactiver la fonction",
+            brief="définit l'écart max de mentionnement autoriser",
+            usage="<offset as number>")
+async def hierarchie(ctx,offset: int):
+    
+    conf=config(ctx.guild.name,"server.json")
+    conf.config["maxOffset"]= offset or 0
+    conf.dump()
+    await ctx.send("Offset définit a {}".format(offset))
+
+@bot.command(aliases=["welcomeMess","wm","wM","wellcomeM"],
+            description="définit le message envoyer au nouveaux arrivant sur le serveur, un message vide signifie que rien ne seras envoyer",
+            brief="définit le message envoyer au nouveaux arrivant",
+            usage="<isMP as bool> <message as String>")
+async def welcomeMessage(ctx,isMP:bool,*,message:str):
+    
+    conf=config(ctx.guild.name)
+    if isMP:
+        conf.config["welcomeMessage"]["MP"]=message
+    else:
+        conf.config["welcomeMessage"]["server"]=message
+    conf.dump()
+    await ctx.send("ce message seras envoyer a tout les nouveaux arrivants !")
+
+@bot.command(aliases=["send"],
+    description="envoie une News a tout les joueurs dont le tier associer est supérieure ou égale au tier de la news utilisé unsubNews pour configurer les news que vous souhaiter recevoir",
+    brief="envoie une news au joueur",
+    usage="<newsTier as int> <News as string>")
+async def sendNews(ctx,news_tier:int,*,msg:str):
+    
+    logger.log("cmd","envoi du message \"{}\" ".format(msg),ctx)
+    conf=config(ctx.guild.name)
+    embed=discord.Embed(colour=discord.Colour.blue(),title="News en provenance de : {} ".format(ctx.guild.name))
+    role_list=[]
+    
+    for role in conf.config["roles"].keys():
+        
+        if int(conf.config["roles"][role])>= news_tier:
+            role_list.append(role)
+    
+    title="A destination des roles : {}".format(", ".join(role_list))
+    logger.log("cmd", "titre : \"{}\"".format(title),ctx)
+    embed.add_field(name=title,value=msg,inline=False)
+    
+    async with ctx.channel.typing():
+        for member in ctx.guild.members :
+        
+            logger.log("cmd", "\t évaluation du menbre " + member.name,ctx)
+            T=get_max_member_tier(member)
+        
+            if T >= news_tier :
+            
+                if member.name in conf.config["newsOffset"].keys():
+                
+                    logger.log("cmd","membre définit dans les configs")
+                    if float(conf.config["newsOffset"][member.name])<news_tier:
+                    
+                        try:
+                        
+                            await member.send(embed=embed)
+                            logger.log("cmd","\t\tmessage envoyer",ctx)
+                    
+                        except discord.errors.Forbidden :
+                        
+                            logger.log("cmd","\t\tmessage non envoyer : discord.errors.Forbidden",ctx)
+                            pass
+                
+                    else:
+                    
+                        logger.log("cmd","\t\tmessage non envoyer : offset supérieur  au tier ({})".format(conf.config["newsOffset"][member.name]),ctx)
+
+                else:
+                
+                    try:
+                    
+                        await member.send(embed=embed)
+                        logger.log("cmd","\t\tmessage envoyer",ctx)
+                
+                    except discord.errors.Forbidden :
+                    
+                        logger.log("cmd","\t\tmessage non envoyer : discord.errors.Forbidden",ctx)
+                        pass
+            else:
+            
+                logger.log("cmd","\t\tmessage non envoyer : tier trop faible ({})".format(T),ctx)
+    
+        await ctx.send("la news a été envoyer ! ;)")
 
 ####################_Event du bot_####################
 

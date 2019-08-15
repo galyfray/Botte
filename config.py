@@ -27,11 +27,14 @@ def f_open(path:str,mod:str="a"):
 
 class config(object):
     
-    def __init__(self,guild_name:str,conf_name:str):
+    def __init__(self,guild_name:str,conf_name:str = "server.json"):
         
         self.dir_name=guild_name
         self.name=conf_name
         
+        if not(conf_name.endswith(".json")):
+            conf_name=conf_name+".json"
+
         if not(os.path.isdir("./" + guild_name)):
             os.mkdir("./" + guild_name)
         
