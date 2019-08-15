@@ -403,6 +403,37 @@ async def sendNews(ctx,news_tier:int,*,msg:str):
                 logger.log("cmd","\t\tmessage non envoyer : tier trop faible ({})".format(T),ctx)
     
         await ctx.send("la news a été envoyer ! ;)")
+        
+@bot.command(aliases=["setRT","srt"],
+    description="Definit le tier a partir duquel les reports sont envoyés au utilisateur, les report ignore la configuration des news, laisser le tier vide désactive l'envoie par tier, par defaut ils sont envoyés automatiquement au administrateur du server, toggleAdminReport pour desactivé l'envoie au admin, toggleWarning pour desactivé les message d'allerte",
+    brief="definit le tier a partir duquel les report sont envoyer, laisser vide pour désactiver l'envoie par tier",
+    usage="<tier as int>")
+async def setReportTier(ctx,tier:str):
+    conf=config(ctx.guild.name,"report")
+    if len(tier)==0:
+        if "tier" in conf.config.keys():
+            del conf.config["tier"]
+    else:
+            try : 
+                tier=int(tier)
+                conf.config["tier"]=tier
+            except ValueError :
+                await ctx.send("Le tier spécifier n'est pas valide")
+                return
+    conf.dump()
+    
+@bot.command()
+async def toggleAdminReport(ctx):
+    conf=config(ctx.guild.name,"report")
+    if "admin" in conf.config.keys():
+        conf.config["admin"]= not(conf.config["admin"])
+    else:
+        conf.config["admin"]=False
+    conf.dump()
+    if conf.config["admin"]:
+        await ctx.send("l'envoie des report au admin a ete reactive :)")
+    else:
+        await ctx.send("l'envoie des report au admin a ete desactivee")
 
 ####################_Event du bot_####################
 
@@ -436,10 +467,10 @@ async def on_member_join(member):
     if "defaltRank" in conf.config.keys():
         for role in conf.config["defaltRank"]:
             await member.add_roles(discord.utils.get(member.guild.roles, name=role))
-    if len(conf.config["welcomMessage"]["MP"]) > 0:
-        await member.send(conf.config["welcomMessage"]["MP"])
-    if len(conf.config["welcomMessage"]["server"]) > 0:
-        await member.guild.text_channels[0].send(conf.config["welcomMessage"]["server"])
+    if len(conf.config["welcomeMessage"]["MP"]) > 0:
+        await member.send(conf.config["welcomeMessage"]["MP"])
+    if len(conf.config["welcomeMessage"]["server"]) > 0:
+        await member.guild.text_channels[0].send(conf.config["welcomeMessage"]["server"])
 
 
 @bot.check
