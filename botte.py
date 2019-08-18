@@ -404,36 +404,270 @@ async def sendNews(ctx,news_tier:int,*,msg:str):
     
         await ctx.send("la news a été envoyer ! ;)")
         
+@bot.command(aliases=["sub","unsub","unsubNews","toggleNews"],
+            description="permet au choix de toggle la totalité des news si newsTier est omis ou de bloquer les news inférieure ou équale au tier spécifier",
+            brief="gère la souscription au news du serveur",
+            usage="<optional: newsTier as int>")
+async def subNews(ctx,news_tier:int = math.inf):
+    
+    conf=config(ctx.guild.name)
+    name=ctx.message.author.name
+    
+    if news_tier==math.inf :
+        
+        if not(name in conf.config["newsOffset"].keys()):
+            
+            conf.config["newsOffset"][name]=news_tier
+            await ctx.send("vous ne receverez plus de news en provenace de ce serveur")
+        
+        elif abs(conf.config["newsOffset"][name])==math.inf:
+            
+            conf.config["newsOffset"][name]=(-1)*conf.config["newsOffset"][name]
+            await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(conf.config["newsOffset"][name]))
+        
+        else:
+            
+            conf.config["newsOffset"][name]=news_tier
+            await ctx.send("vous ne receverez plus de news en provenace de ce serveur")
+    else:
+        
+        conf.config["newsOffset"][name]=news_tier
+        await ctx.send("vous ne receverez plus de news d'un tier inférieure as {} en provenace de ce serveur".format(news_tier))
+    
+    conf.dump()
+
+@bot.command(aliases=["shop","shoplist","shl"],
+            description="liste tout les shops trouvés répondant aux critères donné, les tags sont à séparer avec des espaces aucun tag liste tout les shops ",
+            brief="effectue une recherche dans les shops",
+            usage="<optional: keyword as string>")
+async def shopList(ctx,*keyword:str):
+    
+    try :
+        
+        shops=mc.Shops(ctx.guild.name)
+    
+    except json.JSONDecodeError : 
+        
+        await ctx.send("aucun shop n'as été trouver on dirais bien !")
+    
+    else:
+        msg="liste des shops trouvé :\n"
+    
+        if len(keyword)!=0:
+            
+            keyword=" ".join(keyword)
+            shops=shops.with_tags(keyword)
+        
+        else:
+            
+            logger.log("cmd","aucun argument trouver",ctx)
+
+        for c,shop in enumerate(shops) :
+            
+            msg+="{}: Vend :{} {} contre :{} {} |{}\n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name,shop.name)
+        
+        await ctx.send(msg)
+        
+@bot.command(aliases=["shopadd","shopA"],
+            description="créer un nouveaux shop",
+            brief="créer un nouveaux shop",
+            usage="<Nom_item_vendu as string list> <qte_item_vendu as int> <Nom_item_acheter as string list> <qte_item_acheter as int> <tags as string list>")
+async def shopAdd(ctx,*arg):
+    
+    sell=mc.Item("")
+    test=True
+    c=0
+    
+    logger.log("cmd","\trécupération du nom du premier item et de sa quantité",ctx)
+
+    while test:
+        
+        elem=arg[c]
+        
+        try:
+            
+            elem=int(elem)
+            test=False
+        
+        except ValueError:
+            
+            sell.name += " " + elem
+        
+        c +=1
+        
+    sell.qte=int(arg[c-1])
+    logger.log("cmd","\trécupération du nom du deuxième item et de sa quantité",ctx)
+    buy=mc.Item("")
+    test=True
+    
+    while test:
+        
+        elem=arg[c]
+        
+        try:
+            
+            elem=int(elem)
+            test=False
+        
+        except ValueError:
+            
+            buy.name += " " + elem
+        
+        c +=1
+        
+    buy.qte=int(arg[c-1])
+    shop=mc.Shop(ctx.message.author.name,sell,buy,[arg[x].upper() for x in range(c,len(arg,)-1)])
+    logger.log("cmd","\trécupération des shops existant et ajout",ctx)
+    
+    try :
+        
+        shops=mc.Shops(ctx.guild.name)
+        shops.append(shop,shop.name)
+    
+    except json.JSONDecodeError:
+        
+        logger.log("cmd","/!\\WARNING/!\\ fichier de shops illisible, ingnorer cette ligne si la commande créais le 1er shop sinon le fichier a été coromput ",ctx)
+        shops=mc.Shops(_dict={shop.name:[shop.to_dict()]})
+    
+    logger.log("cmd","\técriture des shops",ctx)
+    shops.dump(ctx.guild.name)
+
+    await ctx.send("le shop a été ajouter a la liste !")
+
+@bot.command(aliases=["shoprm","shopRm","shopRM","shop_rm"],
+            description="permet de supprimer un shop via sont numéraux dans la liste donné lors de l'appelle de la commande avec l'argument 'l' la commande accepte '*' comme argument pour indiquer tous",
+            brief="permet de suprimer un shop via sont numéraux dans la list bot!help shopRemove pour plus d'information",
+            usage="<shop number or '*'>")
+async def shopRemove(ctx,nb:str):
+    
+    logger.log("cmd","\trécupération des shops existant",ctx)
+    shops=mc.Shops(ctx.guild.name)
+    
+    if ctx.message.author.name in shops.dictionary.keys():
+        
+        logger.log("cmd","\trécupération des shops du joueur",ctx)
+        playerShops=mc.Shops(_dict={ctx.message.author.name:shops.dictionary[ctx.message.author.name]})
+        
+        if nb != "l":
+            
+            try:
+                
+                nb=int(nb)
+            
+            except ValueError:
+                
+                if "*" != nb :
+                    
+                    commands.BadArgument()
+                
+                else:
+                    
+                    logger.log("cmd","\tsuppression de tout les shops du joueur",ctx)
+                    
+                    for shop in playerShops.shops:
+                        
+                        shops.suppr(shop)
+                    
+                    shops.dump(ctx.guild.name)
+                    await ctx.send("tout vos shop on été supprimé !")
+                    return
+            
+            logger.log("cmd","\tsuppression du shop demander par le joueur",ctx)
+            shops.suppr(playerShops[nb])
+            shops.dump(ctx.guild.name)
+            await ctx.send("le shop n° {} a été suprimer".format(nb))
+        
+        else:
+            
+            logger.log("cmd","\taffichage des shops du joueur",ctx)
+            msg="Vos shops :\n"
+            
+            for c,shop in enumerate(playerShops):
+                
+                msg+="{}: Vend :{} {} contre :{} {} \n".format(c,shop.sell.qte,shop.sell.name,shop.buy.qte,shop.buy.name)
+            
+            await ctx.send(msg)
+    
+    else:
+        
+        await ctx.send("vous n'avez encore aucun shop O.o")
+
 @bot.command(aliases=["setRT","srt"],
-    description="Definit le tier a partir duquel les reports sont envoyés au utilisateur, les report ignore la configuration des news, laisser le tier vide désactive l'envoie par tier, par defaut ils sont envoyés automatiquement au administrateur du server, toggleAdminReport pour desactivé l'envoie au admin, toggleWarning pour desactivé les message d'allerte",
+    description="Définit le tier a partir duquel les reports sont envoyés au utilisateur, les report ignore la configuration des news, laisser le tier vide désactive l'envoie par tier, par defaut ils sont envoyés automatiquement au administrateur du server, toggleAdminReport pour desactivé l'envoie au admin, toggleWarning pour desactivé les message d'allerte",
     brief="definit le tier a partir duquel les report sont envoyer, laisser vide pour désactiver l'envoie par tier",
     usage="<tier as int>")
 async def setReportTier(ctx,tier:str):
+    
     conf=config(ctx.guild.name,"report")
+    
     if len(tier)==0:
+        
         if "tier" in conf.config.keys():
+            
             del conf.config["tier"]
+    
     else:
+            
             try : 
+                
                 tier=int(tier)
                 conf.config["tier"]=tier
+            
             except ValueError :
+                
                 await ctx.send("Le tier spécifier n'est pas valide")
                 return
-    conf.dump()
     
+    conf.dump()
+
 @bot.command()
 async def toggleAdminReport(ctx):
+    
     conf=config(ctx.guild.name,"report")
+
     if "admin" in conf.config.keys():
+        
         conf.config["admin"]= not(conf.config["admin"])
+    
     else:
+        
         conf.config["admin"]=False
+    
     conf.dump()
+
     if conf.config["admin"]:
-        await ctx.send("l'envoie des report au admin a ete reactive :)")
+        
+        await ctx.send("l'envoie des report au admin a été reactivé :)")
+    
     else:
-        await ctx.send("l'envoie des report au admin a ete desactivee")
+        
+        await ctx.send("l'envoie des report au admin a été desactivée")
+
+@bot.command()
+async def toggleWarning(ctx):
+    
+    conf=config(ctx.guild.name,"report")
+
+    if "warning" in conf.config.keys():
+        
+        conf.config["warning"]= not(conf.config["warning"])
+    
+    else:
+        
+        conf.config["warning"]=False
+    
+    conf.dump()
+
+    if conf.config["warning"]:
+        
+        await ctx.send("l'envoie des warning a été reactivé :)")
+    
+    else:
+        
+        await ctx.send("l'envoie des warning a été desactivée")
+
+@bot.command()
+async def report(ctx,*,msg:str)
 
 ####################_Event du bot_####################
 
