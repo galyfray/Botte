@@ -13,10 +13,6 @@
 """
 __author__ = "Cyril Obrecht"
 
-
-import discord
-from discord.ext import tasks, commands
-from discord.ext.commands import Bot
 from datetime import date
 import datetime
 import asyncio
@@ -25,6 +21,11 @@ import json
 import math
 import traceback
 import sys
+
+import discord
+from discord.ext import tasks, commands
+from discord.ext.commands import Bot
+
 from logger import logger
 from config import config
 import mc
