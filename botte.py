@@ -1,4 +1,4 @@
-"""
+:"""
     Copyright © 2019 Cyril OBRECHT
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -668,7 +668,29 @@ async def toggleWarning(ctx):
         await ctx.send("l'envoie des warning a été desactivée")
 
 @bot.command()
-async def report(ctx,*,msg:str)
+async def setReportChanel(ctx):
+    conf=config(ctx.guild.name,"report")
+    if len(ctx.message.channel_mentions)=0:
+        del conf.config["channel"]
+        conf.dump()
+        await ctx.send("les reports serons envoyer en mp")
+    elif len(ctx.message.channel_mentions)==1:
+        conf.config["channel"]=ctx.message.channel_message[0].mention
+        conf.dump()
+        await ctx.send("Les report serons envoyer dans le channel {}".format(ctx.message.channel_message[0].name))
+    else :
+        await ctx.send("Commande invalide veuillez ne mentioner qu'un seul channel")
+
+@bot.command()
+async def report(ctx,*,msg):
+    msg="report en provenance de : {}\n {}".format(ctx.message.author.name,msg)
+    ctx.message.delete()
+    conf=config(ctx.guild.name,"report")
+    if not("channel" in conf.config.keys()):
+        #mp
+        pass
+    else:
+        
 
 ####################_Event du bot_####################
 
